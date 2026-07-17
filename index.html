@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="description" content="Jacob C. Williams — Flight Dynamics Engineer. Flight dynamics software, orbit determination, maneuver design, and mission analysis for LEO constellations.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Jacob C. Williams — Flight Dynamics Engineer">
+<meta property="og:description" content="Flight dynamics software, orbit determination, maneuver design, and mission analysis for LEO constellations.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128752;</text></svg>">
+<title>Jacob C. Williams — Flight Dynamics Engineer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  /* ============ TOKENS — single dark deep-space theme, ember accent ============ */
+  :root, :root[data-theme="light"], :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0A0608;
+    --bg-panel: #151013;
+    --bg-panel-2: #1C1518;
+    --fg: #F2EDEC;
+    --fg-2: #BCA9A6;
+    --fg-3: #7E6D6C;
+    --accent: #FF6B54;
+    --accent-soft: rgba(255, 107, 84, 0.09);
+    --accent-line: rgba(255, 107, 84, 0.42);
+    --border: #2A1F22;
+    --border-strong: #423035;
+    --glow: rgba(255, 107, 84, 0.16);
+    --canvas-star: rgba(242, 237, 236, 0.8);
+    --canvas-orbit: rgba(200, 170, 165, 0.28);
+    --canvas-sat: #FF6B54;
+    --canvas-planet-a: #3A1B18;
+    --canvas-planet-b: #120708;
+    --shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+    --mono: "Cascadia Code", Consolas, ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  /* ============ BASE ============ */
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(ellipse 900px 600px at 85% -5%, rgba(255, 107, 84, 0.06), transparent 60%),
+      radial-gradient(ellipse 800px 700px at 8% 38%, rgba(214, 69, 80, 0.05), transparent 65%),
+      radial-gradient(ellipse 1000px 800px at 92% 78%, rgba(255, 158, 88, 0.04), transparent 65%),
+      var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { line-height: 1.2; text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover, a:focus-visible { text-decoration: underline; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+  ::selection { background: var(--accent); color: var(--bg); }
+
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ============ SCROLL PROGRESS ============ */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 2px; width: 0;
+    background: var(--accent); z-index: 100;
+  }
+
+  /* ============ NAV ============ */
+  nav {
+    position: sticky; top: 0; z-index: 90;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 1060px; margin: 0 auto; padding: 0.8rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .logo {
+    font-family: var(--mono); font-weight: 700; font-size: 0.95rem;
+    color: var(--fg); letter-spacing: 0.08em;
+  }
+  .logo .tick { color: var(--accent); }
+  .logo:hover { text-decoration: none; color: var(--accent); }
+  .nav-links { display: flex; gap: 0.25rem; align-items: center; list-style: none; margin: 0; padding: 0; }
+  .nav-links a {
+    font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em;
+    color: var(--fg-2); padding: 0.4rem 0.65rem; border-radius: 6px;
+  }
+  .nav-links a:hover { color: var(--accent); background: var(--accent-soft); text-decoration: none; }
+  @media (max-width: 780px) { .nav-links li.hide-m { display: none; } }
+
+  /* ============ HERO ============ */
+  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--border); }
+  #sky {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    display: block; pointer-events: none;
+  }
+  .hero-inner {
+    position: relative; max-width: 1060px; margin: 0 auto;
+    padding: 5.5rem 1.5rem 4.5rem;
+  }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 1.1rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.4rem, 6vw, 3.9rem);
+    font-weight: 750; letter-spacing: -0.025em;
+  }
+  .hero .role {
+    margin-top: 0.6rem; font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+    color: var(--fg-2); font-weight: 500;
+  }
+  .hero .role b { color: var(--fg); font-weight: 650; }
+  .hero .pitch {
+    margin-top: 1.4rem; max-width: 34em; font-size: 1.08rem; color: var(--fg-2);
+  }
+  .hero-meta {
+    margin-top: 1.6rem; display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem;
+    font-family: var(--mono); font-size: 0.82rem; color: var(--fg-3);
+  }
+  .hero-meta span::before { content: "▸ "; color: var(--accent); }
+  .hero-ctas { margin-top: 2.1rem; display: flex; flex-wrap: wrap; gap: 0.7rem; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: var(--mono); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.04em;
+    padding: 0.7rem 1.3rem; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--accent-line); transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn:hover { text-decoration: none; transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-primary:hover { box-shadow: 0 6px 22px var(--glow); }
+  .btn-ghost { background: transparent; color: var(--accent); }
+  .btn-ghost:hover { background: var(--accent-soft); }
+
+  .hero-cards {
+    margin-top: 3.2rem; display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.9rem;
+  }
+  .hero-card {
+    background: color-mix(in srgb, var(--bg-panel) 78%, transparent);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem 1.2rem;
+  }
+  .hero-card .k {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.45rem;
+  }
+  .hero-card p { font-size: 0.92rem; color: var(--fg-2); }
+
+  /* ============ SECTIONS ============ */
+  section { padding: 4.5rem 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+  .sec-head { margin-bottom: 2.4rem; }
+  .sec-eyebrow {
+    font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.6rem;
+  }
+  .sec-eyebrow::after {
+    content: ""; display: inline-block; vertical-align: middle;
+    width: 3.5rem; height: 1px; background: var(--accent-line); margin-left: 0.9rem;
+  }
+  .sec-head h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 720; letter-spacing: -0.02em; }
+  .sec-head .lede { margin-top: 0.7rem; color: var(--fg-2); max-width: 40em; }
+
+  /* reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.55s ease, transform 0.55s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .btn { transition: none; }
+  }
+
+  /* ============ EXPERIENCE TIMELINE ============ */
+  .xp { display: grid; gap: 1.1rem; }
+  .xp-item {
+    display: grid; grid-template-columns: 190px 1fr; gap: 1.4rem;
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.5rem 1.6rem; box-shadow: var(--shadow);
+  }
+  @media (max-width: 700px) { .xp-item { grid-template-columns: 1fr; gap: 0.6rem; } }
+  .xp-when { font-family: var(--mono); font-size: 0.8rem; color: var(--fg-3); line-height: 1.9; }
+  .xp-when .tag {
+    display: inline-block; margin-top: 0.4rem; font-size: 0.68rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+    border: 1px solid var(--accent-line); border-radius: 999px; padding: 0.15rem 0.6rem;
+  }
+  .xp-body h3 { font-size: 1.12rem; font-weight: 680; }
+  .xp-body .org { margin-top: 0.2rem; font-size: 0.92rem; color: var(--fg-2); }
+  .xp-body .org b { color: var(--accent); font-weight: 600; }
+  .xp-body .sub {
+    margin: 0.9rem 0 0.3rem; font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-3);
+  }
+  .xp-body ul { margin: 0.55rem 0 0; padding-left: 1.1rem; color: var(--fg-2); font-size: 0.95rem; }
+  .xp-body li { margin-bottom: 0.35rem; }
+  .xp-body li::marker { color: var(--accent); }
+
+  /* ============ APPROACH ============ */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+  .step {
+    border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 10px; background: var(--bg-panel); padding: 1.4rem 1.4rem 1.5rem;
+  }
+  .step .n { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); letter-spacing: 0.14em; }
+  .step h3 { margin-top: 0.5rem; font-size: 1.05rem; font-weight: 680; }
+  .step p { margin-top: 0.5rem; font-size: 0.93rem; color: var(--fg-2); }
+
+  /* ============ FOCUS AREAS ============ */
+  .focus-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1rem; }
+  .focus {
+    position: relative; background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem 1.5rem 1.6rem; overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .focus:hover { border-color: var(--accent-line); transform: translateY(-2px); }
+  .focus .k {
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--fg-3); margin-bottom: 0.6rem;
+  }
+  .focus h3 { font-size: 1.1rem; font-weight: 680; }
+  .focus p { margin-top: 0.6rem; font-size: 0.93rem; color: var(--fg-2); }
+  .focus .chips { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .chip {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--fg-2);
+    background: var(--bg-panel-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 0.18rem 0.65rem;
+  }
+
+  /* ============ SKILLS ============ */
+  .skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+  .skill-group { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.3rem 1.4rem; }
+  .skill-group h3 {
+    font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+  }
+  .skill-group .chips { margin-top: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+  /* ============ EDUCATION ============ */
+  .edu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) { .edu-grid { grid-template-columns: 1fr; } }
+  .edu-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1.6rem; }
+  .edu-card h3 { font-size: 1.08rem; font-weight: 680; }
+  .edu-card .where { margin-top: 0.25rem; color: var(--accent); font-weight: 600; font-size: 0.95rem; }
+  .edu-card .when { margin-top: 0.15rem; font-family: var(--mono); font-size: 0.8rem; color: var(--fg-3); }
+  .edu-card ul { margin: 0.9rem 0 0; padding-left: 1.1rem; color: var(--fg-2); font-size: 0.93rem; }
+  .edu-card li { margin-bottom: 0.3rem; }
+  .edu-card li::marker { color: var(--accent); }
+
+  /* ============ CONTACT ============ */
+  .contact { text-align: center; padding: 5.5rem 0 4rem; }
+  .contact h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 730; letter-spacing: -0.02em; }
+  .contact .lede { margin: 0.9rem auto 0; color: var(--fg-2); max-width: 34em; }
+  .contact-row { margin-top: 2rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.8rem; }
+  footer {
+    border-top: 1px solid var(--border); padding: 1.6rem 0 2rem; text-align: center;
+    font-family: var(--mono); font-size: 0.78rem; color: var(--fg-3);
+  }
+  footer .sig { color: var(--accent); }
+</style>
+
+<div id="progress"></div>
+
+<nav aria-label="Sections">
+  <div class="nav-inner">
+    <a class="logo" href="#top"><span class="tick">◢</span> JCW<span class="tick">.</span>FDS</a>
+    <ul class="nav-links">
+      <li><a href="#experience">Experience</a></li>
+      <li class="hide-m"><a href="#approach">Approach</a></li>
+      <li><a href="#focus">Focus</a></li>
+      <li class="hide-m"><a href="#skills">Skills</a></li>
+      <li class="hide-m"><a href="#education">Education</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <p class="hero-eyebrow">Flight Dynamics · LEO Constellations · Mission Analysis</p>
+    <h1>Jacob C. Williams</h1>
+    <p class="role"><b>Flight Dynamics Engineer</b> — GNC &amp; Orbital Systems</p>
+    <p class="pitch">I build the flight dynamics software, maneuver strategies, and mission analyses that keep LEO constellations flying — high-fidelity orbit propagation, orbit determination, maneuver planning, and coverage studies, plus the hardware side to know what the spacecraft can actually take.</p>
+    <div class="hero-meta">
+      <span>jakecwill@gmail.com</span>
+      <span><a href="https://www.linkedin.com/in/jacob-williams-1923951b5/" target="_blank" rel="noopener">LinkedIn ↗</a></span>
+    </div>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="#contact">Get in touch →</a>
+      <a class="btn btn-ghost" href="https://www.linkedin.com/in/jacob-williams-1923951b5/" target="_blank" rel="noopener">LinkedIn</a>
+      <a class="btn btn-ghost" href="#experience">See experience</a>
+    </div>
+    <div class="hero-cards">
+      <div class="hero-card">
+        <div class="k">Toolchain</div>
+        <p>Python, Rust, and MATLAB alongside STK and ODTK — pipelines for orbit propagation, orbit determination, maneuver design, and coverage analysis.</p>
+      </div>
+      <div class="hero-card">
+        <div class="k">Clearance</div>
+        <p>Active TS/SCI. Experienced across defense and commercial NewSpace programs.</p>
+      </div>
+      <div class="hero-card">
+        <div class="k">Dual-Discipline</div>
+        <p>From Abaqus FEA and GD&amp;T drawings to on-orbit maneuver ops — I've carried spacecraft from CAD to orbit.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="experience">
+    <div class="sec-head reveal">
+      <p class="sec-eyebrow">01 · Mission Log</p>
+      <h2>Experience</h2>
+      <p class="lede">Operational flight dynamics for a live constellation, dual-discipline spacecraft engineering, and software test for defense systems.</p>
+    </div>
+
+    <div class="xp">
+      <article class="xp-item reveal">
+        <div class="xp-when">
+          Apr 2026 — Present<br>
+          <span class="tag">Current</span>
+        </div>
+        <div class="xp-body">
+          <h3>Flight Dynamics Engineer</h3>
+          <p class="org"><b>E-Space</b> · Space Systems Engineering — Remote</p>
+          <ul>
+            <li>Develop and maintain in-house flight dynamics and mission analysis software — Rust-based high-fidelity orbit propagation built on the Nyx astrodynamics engine, with full force modeling (gravity harmonics, atmospheric drag, SRP, third-body) — for constellation propagation and maneuver simulation.</li>
+            <li>Run Monte Carlo dispersion campaigns for deployment and maneuver planning — separation dynamics, drag and thrust uncertainty, and conjunction risk statistics across the fleet.</li>
+            <li>Automate orbit determination workflows in ODTK and Python: tracking data ingest, filter/smoother runs, and residual analysis feeding daily operations.</li>
+            <li>Design, optimize, and automate orbit maneuver strategies for deployment phasing, station-keeping, replenishment, collision avoidance, and re-entry operations.</li>
+            <li>Architect and deploy Space Situational Awareness (SSA) and collision avoidance strategies at constellation scale.</li>
+            <li>Perform STK-based mission analyses: maneuver design, lifetime prediction, and coverage analysis for a sustainable LEO network.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="xp-item reveal">
+        <div class="xp-when">
+          Jun 2023 — Apr 2026<br>
+          <span class="tag">Dual-role</span>
+        </div>
+        <div class="xp-body">
+          <h3>Mechanical Engineer / GNC &amp; Orbital Systems Engineer</h3>
+          <p class="org"><b>T2S Solutions</b> · Spacecraft hardware + orbital mission design</p>
+          <p class="sub">Orbital Analysis &amp; GNC</p>
+          <ul>
+            <li>Architected and optimized LEO constellation configurations in STK and MATLAB — global coverage, revisit rates, and inter-satellite link performance for operational missions.</li>
+            <li>Executed end-to-end link margin analyses: signal propagation, antenna gain, atmospheric loss, and noise across mission phases.</li>
+            <li>Built Python/MATLAB tooling for orbital trade studies — altitude optimization, phasing maneuvers, delta-V budgeting, and launch windows.</li>
+            <li>Correlated predicted vs. actual orbital parameters from on-orbit telemetry to sharpen predictive models.</li>
+          </ul>
+          <p class="sub">Mechanical Design &amp; Spacecraft Structures</p>
+          <ul>
+            <li>Led mechanical design of space-focused hardware and directed on-site assembly and integration of structural systems.</li>
+            <li>Performed structural, thermal, and vibration FEA (Abaqus) validating hardware survival through launch and on-orbit environments.</li>
+            <li>Authored GD&amp;T drawings and built SolidWorks design automation that standardized parametric models across the team.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="xp-item reveal">
+        <div class="xp-when">
+          Jun 2024 — Sep 2024<br>
+          <span class="tag">Leadership</span>
+        </div>
+        <div class="xp-body">
+          <h3>Program Lead — High Altitude Balloon (HAB) Program</h3>
+          <p class="org"><b>T2S Solutions</b> · Cross-functional program leadership</p>
+          <ul>
+            <li>Led SW/ME/EE teams through the full prototype lifecycle: requirements, design, manufacturing, ground test, and flight operations for HAB v1.0.</li>
+            <li>Owned risk assessments, specifications, and progress reporting; awarded a Certificate of Appreciation for program execution.</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="xp-item reveal">
+        <div class="xp-when">
+          Dec 2022 — Jun 2023
+        </div>
+        <div class="xp-body">
+          <h3>Systems Engineer</h3>
+          <p class="org"><b>Torch Technologies, Inc.</b> · Aerospace &amp; defense</p>
+          <ul>
+            <li>Led software testing and data analysis for aerospace and defense systems, improving reliability and mission readiness.</li>
+            <li>Built automated testing tools for validation, data analysis, and reporting; authored acceptance criteria and data requirements.</li>
+          </ul>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="approach">
+    <div class="sec-head reveal">
+      <p class="sec-eyebrow">02 · Flight Sequence</p>
+      <h2>How I Work</h2>
+      <p class="lede">Every mission I touch follows the same loop — and each pass through it makes the next prediction better.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="n">T−02</div>
+        <h3>Model the mission</h3>
+        <p>High-fidelity propagation with full force models — gravity harmonics, drag, SRP, third-body — plus coverage and access analysis, link budgets, and delta-V trades before anything flies.</p>
+      </div>
+      <div class="step reveal">
+        <div class="n">T−01</div>
+        <h3>Automate the pipeline</h3>
+        <p>Turn one-off analyses into Python, Rust, and MATLAB tools the whole team can rerun — orbit determination, maneuver planning, reporting, and QC without the babysitting.</p>
+      </div>
+      <div class="step reveal">
+        <div class="n">T+00</div>
+        <h3>Close the loop on orbit</h3>
+        <p>Run orbit determination on every pass, compare predicted vs. actual state after every maneuver, and feed the residuals back into the force models and thrust calibration.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="focus">
+    <div class="sec-head reveal">
+      <p class="sec-eyebrow">03 · Payload Bay</p>
+      <h2>Focus Areas</h2>
+      <p class="lede">The problem spaces I keep coming back to — and the tools I bring to each.</p>
+    </div>
+    <div class="focus-grid">
+      <div class="focus reveal">
+        <div class="k">Astrodynamics</div>
+        <h3>Constellation Design &amp; Optimization</h3>
+        <p>Walker and custom geometries traded against coverage density, revisit rate, and launch/ops cost. Parametric studies that turn "what if" into a defensible answer.</p>
+        <div class="chips"><span class="chip">STK</span><span class="chip">MATLAB</span><span class="chip">Trade studies</span></div>
+      </div>
+      <div class="focus reveal">
+        <div class="k">Operations</div>
+        <h3>Maneuver Design &amp; Automation</h3>
+        <p>Deployment phasing, station-keeping, collision avoidance, and re-entry strategies — finite-burn modeling for low-thrust electric propulsion, designed once and automated so operations scale with the constellation.</p>
+        <div class="chips"><span class="chip">Python</span><span class="chip">Astrogator</span><span class="chip">Low-thrust</span><span class="chip">Delta-V budgets</span></div>
+      </div>
+      <div class="focus reveal">
+        <div class="k">Estimation</div>
+        <h3>Orbit Determination</h3>
+        <p>Automated OD pipelines in ODTK and Python — tracking data ingest, filter and smoother runs, residual screening, and maneuver reconstruction that keep the ephemeris trustworthy day after day.</p>
+        <div class="chips"><span class="chip">ODTK</span><span class="chip">Kalman filtering</span><span class="chip">Residual analysis</span></div>
+      </div>
+      <div class="focus reveal">
+        <div class="k">Safety of Flight</div>
+        <h3>SSA &amp; Collision Avoidance</h3>
+        <p>Conjunction screening and avoidance strategy at constellation scale — Monte Carlo probability-of-collision statistics, lifetime prediction, and responsible de-orbit planning.</p>
+        <div class="chips"><span class="chip">Conjunction analysis</span><span class="chip">Monte Carlo</span><span class="chip">Lifetime prediction</span></div>
+      </div>
+      <div class="focus reveal">
+        <div class="k">Communications</div>
+        <h3>Link Margin &amp; Coverage Analysis</h3>
+        <p>End-to-end link budgets — propagation, antenna gain, atmospheric loss, noise — validated against coverage and access windows across every mission phase.</p>
+        <div class="chips"><span class="chip">Link budgets</span><span class="chip">Access analysis</span></div>
+      </div>
+      <div class="focus reveal">
+        <div class="k">Structures</div>
+        <h3>Spacecraft Hardware</h3>
+        <p>Structural, thermal, and vibration FEA; GD&amp;T; payload integration. I know what the hardware can take because I've designed and built it.</p>
+        <div class="chips"><span class="chip">Abaqus</span><span class="chip">SolidWorks</span><span class="chip">GD&amp;T</span></div>
+      </div>
+      <div class="focus reveal">
+        <div class="k">Software</div>
+        <h3>Flight Dynamics Tooling</h3>
+        <p>In-house propagation and mission analysis software built on the Nyx astrodynamics engine — Rust where performance matters, Python where iteration speed matters — validated against commercial tools and wired into daily operations.</p>
+        <div class="chips"><span class="chip">Rust</span><span class="chip">Nyx</span><span class="chip">Python</span><span class="chip">Validation</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="skills">
+    <div class="sec-head reveal">
+      <p class="sec-eyebrow">04 · Instrument Panel</p>
+      <h2>Technical Snapshot</h2>
+    </div>
+    <div class="skills">
+      <div class="skill-group reveal">
+        <h3>Languages &amp; Tools</h3>
+        <div class="chips">
+          <span class="chip">Python</span><span class="chip">Rust</span><span class="chip">MATLAB</span>
+          <span class="chip">STK</span><span class="chip">ODTK</span><span class="chip">Nyx</span>
+          <span class="chip">Abaqus FEA</span><span class="chip">SolidWorks</span><span class="chip">Git</span>
+        </div>
+      </div>
+      <div class="skill-group reveal">
+        <h3>Orbital &amp; GNC</h3>
+        <div class="chips">
+          <span class="chip">Orbit propagation</span><span class="chip">Orbit determination</span>
+          <span class="chip">Maneuver design</span><span class="chip">Constellation design</span>
+          <span class="chip">Trajectory optimization</span><span class="chip">GNC analysis</span>
+        </div>
+      </div>
+      <div class="skill-group reveal">
+        <h3>Mission Analysis</h3>
+        <div class="chips">
+          <span class="chip">Coverage &amp; access</span><span class="chip">Link margin</span>
+          <span class="chip">Monte Carlo simulation</span><span class="chip">Pass prediction</span>
+          <span class="chip">Post-mission analysis</span>
+        </div>
+      </div>
+      <div class="skill-group reveal">
+        <h3>Systems &amp; Leadership</h3>
+        <div class="chips">
+          <span class="chip">Systems engineering</span><span class="chip">Configuration mgmt</span>
+          <span class="chip">CAPM</span><span class="chip">Cross-functional teams</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="education">
+    <div class="sec-head reveal">
+      <p class="sec-eyebrow">05 · Flight Records</p>
+      <h2>Education &amp; Credentials</h2>
+    </div>
+    <div class="edu-grid">
+      <div class="edu-card reveal">
+        <h3>B.S., Aerospace Engineering</h3>
+        <p class="where">Mississippi State University</p>
+        <p class="when">2018 — 2022</p>
+      </div>
+      <div class="edu-card reveal">
+        <h3>Certifications &amp; Extras</h3>
+        <ul>
+          <li>TS/SCI — Active</li>
+          <li>CSWA / CSWP Advanced (SolidWorks)</li>
+          <li>CAPM — Certified Associate in Project Management</li>
+          <li>Student Pilot · Published Author</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact" id="contact">
+    <div class="reveal">
+      <p class="sec-eyebrow" style="text-align:center;">06 · Establish Contact</p>
+      <h2>Let's put something in orbit.</h2>
+      <p class="lede">Constellation design, flight dynamics software, mission analysis — if it flies in LEO, I'm interested. The fastest downlink is email.</p>
+      <div class="contact-row">
+        <button class="btn btn-primary" id="copy-email">jakecwill@gmail.com — copy</button>
+        <a class="btn btn-ghost" href="https://www.linkedin.com/in/jacob-williams-1923951b5/" target="_blank" rel="noopener">LinkedIn ↗</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span class="sig">◢</span> © 2026 Jacob C. Williams · Built for the vacuum of space, rendered in your browser
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement;
+
+  /* ---------- scroll progress ---------- */
+  var bar = document.getElementById('progress');
+  function onScroll() {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* ---------- reveal on scroll ---------- */
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var items = document.querySelectorAll('.reveal');
+  if (!reduced && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    items.forEach(function (el) { io.observe(el); });
+  } else {
+    items.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* ---------- copy email ---------- */
+  var copyBtn = document.getElementById('copy-email');
+  copyBtn.addEventListener('click', function () {
+    var reset = 'jakecwill@gmail.com — copy';
+    var done = function (ok) {
+      copyBtn.textContent = ok ? 'Copied to clipboard ✓' : 'jakecwill@gmail.com';
+      setTimeout(function () { copyBtn.textContent = reset; }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText('jakecwill@gmail.com')
+        .then(function () { done(true); }, function () { done(false); });
+    } else { done(false); }
+  });
+
+  /* ---------- hero canvas: starfield + LEO constellation ---------- */
+  var canvas = document.getElementById('sky');
+  var ctx = canvas.getContext('2d');
+  var stars = [], W = 0, H = 0, dpr = 1, raf = null;
+
+  function cssVar(name) {
+    return getComputedStyle(root).getPropertyValue(name).trim();
+  }
+
+  function resize() {
+    var rect = canvas.parentElement.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = rect.width; H = rect.height;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    stars = [];
+    var n = Math.floor((W * H) / 6500);
+    for (var i = 0; i < n; i++) {
+      stars.push({
+        x: Math.random() * W, y: Math.random() * H,
+        r: Math.random() * 1.3 + 0.3,
+        p: Math.random() * Math.PI * 2,
+        s: 0.4 + Math.random() * 1.4
+      });
+    }
+  }
+
+  /* Planet sits off the right edge; three orbit shells carry satellites. */
+  var ORBITS = [
+    { rx: 1.55, ry: 0.62, tilt: -0.42, sats: 4, speed: 0.00016, phase: 0.0 },
+    { rx: 1.90, ry: 0.85, tilt: -0.18, sats: 5, speed: 0.00012, phase: 2.1 },
+    { rx: 2.30, ry: 1.15, tilt:  0.08, sats: 6, speed: 0.00009, phase: 4.0 }
+  ];
+
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+    var starC = cssVar('--canvas-star');
+    var orbitC = cssVar('--canvas-orbit');
+    var satC = cssVar('--canvas-sat');
+    var pa = cssVar('--canvas-planet-a');
+    var pb = cssVar('--canvas-planet-b');
+
+    /* stars */
+    for (var i = 0; i < stars.length; i++) {
+      var st = stars[i];
+      var tw = reduced ? 0.75 : 0.55 + 0.45 * Math.sin(t * 0.001 * st.s + st.p);
+      ctx.globalAlpha = tw;
+      ctx.fillStyle = starC;
+      ctx.beginPath();
+      ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    /* planet: circle centered beyond right edge so only the limb shows */
+    var pr = Math.max(H * 0.85, 340);
+    var px = W + pr * 0.55;
+    var py = H * 0.45;
+    var grad = ctx.createRadialGradient(px - pr * 0.5, py - pr * 0.4, pr * 0.2, px, py, pr);
+    grad.addColorStop(0, pa);
+    grad.addColorStop(1, pb);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
+    ctx.fill();
+    /* limb glow */
+    ctx.strokeStyle = satC;
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(px, py, pr + 1, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    /* orbits + satellites */
+    for (var o = 0; o < ORBITS.length; o++) {
+      var ob = ORBITS[o];
+      var rx = pr * ob.rx * 0.72, ry = pr * ob.ry * 0.72;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(ob.tilt);
+      ctx.strokeStyle = orbitC;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (var s = 0; s < ob.sats; s++) {
+        var ang = ob.phase + (s / ob.sats) * Math.PI * 2 + (reduced ? 0 : t * ob.speed * Math.PI * 2);
+        var sx = Math.cos(ang) * rx, sy = Math.sin(ang) * ry;
+        /* short trailing arc */
+        ctx.strokeStyle = satC;
+        ctx.globalAlpha = 0.4;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx, ry, 0, ang - 0.22, ang);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        /* satellite */
+        ctx.fillStyle = satC;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  function loop(t) { draw(t); raf = requestAnimationFrame(loop); }
+
+  resize();
+  window.addEventListener('resize', function () { resize(); if (reduced) draw(9000); });
+  if (reduced) {
+    draw(9000);
+  } else {
+    raf = requestAnimationFrame(loop);
+    /* pause when tab hidden */
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { if (raf) cancelAnimationFrame(raf); raf = null; }
+      else if (!raf) { raf = requestAnimationFrame(loop); }
+    });
+  }
+})();
+</script>
+</html>
