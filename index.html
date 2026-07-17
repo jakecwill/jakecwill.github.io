@@ -38,13 +38,20 @@
   /* ============ BASE ============ */
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
+  html {
     background:
       radial-gradient(ellipse 900px 600px at 85% -5%, rgba(255, 107, 84, 0.06), transparent 60%),
       radial-gradient(ellipse 800px 700px at 8% 38%, rgba(214, 69, 80, 0.05), transparent 65%),
       radial-gradient(ellipse 1000px 800px at 92% 78%, rgba(255, 158, 88, 0.04), transparent 65%),
       var(--bg);
+  }
+  #space {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    z-index: -1; pointer-events: none;
+  }
+  body {
+    margin: 0;
+    background: transparent;
     color: var(--fg);
     font-family: var(--sans);
     font-size: 16.5px;
@@ -112,6 +119,10 @@
   .hero h1 {
     font-size: clamp(2.4rem, 6vw, 3.9rem);
     font-weight: 750; letter-spacing: -0.025em;
+    background: linear-gradient(100deg, var(--fg) 55%, #FFAE9B 85%, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   .hero .role {
     margin-top: 0.6rem; font-size: clamp(1.05rem, 2.4vw, 1.3rem);
@@ -264,9 +275,72 @@
     font-family: var(--mono); font-size: 0.78rem; color: var(--fg-3);
   }
   footer .sig { color: var(--accent); }
+
+  /* ============ POLISH: skip link, telemetry strip, timeline rail ============ */
+  .skip-link {
+    position: absolute; left: -999px; top: 0; z-index: 200;
+    background: var(--accent); color: var(--bg); font-family: var(--mono);
+    padding: 0.5rem 1rem; border-radius: 0 0 8px 0;
+  }
+  .skip-link:focus { left: 0; }
+
+  .telem {
+    position: relative; border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg) 55%, transparent);
+    backdrop-filter: blur(6px);
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em;
+    color: var(--fg-3); text-transform: uppercase;
+  }
+  .telem-inner {
+    max-width: 1060px; margin: 0 auto; padding: 0.55rem 1.5rem;
+    display: flex; flex-wrap: wrap; gap: 0.3rem 1.6rem;
+  }
+  .telem b { color: var(--fg-2); font-weight: 600; }
+  .telem .ok { color: var(--accent); }
+  .telem .sep::before { content: "▮ "; color: var(--accent-line); }
+
+  .xp { position: relative; padding-left: 1.9rem; }
+  .xp::before {
+    content: ""; position: absolute; left: 0.55rem; top: 14px; bottom: 14px;
+    width: 1px; background: linear-gradient(var(--accent-line), var(--border-strong));
+  }
+  .xp-item { position: relative; }
+  .xp-item::before {
+    content: ""; position: absolute; top: 2rem; left: calc(-1.35rem - 4px);
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 10px var(--glow), 0 0 0 3px var(--bg);
+  }
+  @media (max-width: 700px) {
+    .xp { padding-left: 1.4rem; }
+    .xp-item::before { left: calc(-0.85rem - 4px); }
+  }
+
+  .nav-links a.active { color: var(--accent); background: var(--accent-soft); }
+
+  #rtb {
+    position: fixed; right: 1.2rem; bottom: 1.2rem; z-index: 85;
+    border: 1px solid var(--accent-line); background: var(--bg-panel); color: var(--accent);
+    font-family: var(--mono); font-size: 0.78rem; padding: 0.55rem 0.8rem; border-radius: 8px;
+    cursor: pointer; opacity: 0; pointer-events: none; transform: translateY(8px);
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  #rtb.show { opacity: 1; pointer-events: auto; transform: none; }
+  #rtb:hover { background: var(--accent-soft); }
+
+  .hero-eyebrow::after {
+    content: "▮"; margin-left: 0.35rem; color: var(--accent);
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-eyebrow::after { animation: none; }
+    #rtb { transition: none; }
+  }
 </style>
 
 <div id="progress"></div>
+<canvas id="space" aria-hidden="true"></canvas>
+<a class="skip-link" href="#main">Skip to content</a>
 
 <nav aria-label="Sections">
   <div class="nav-inner">
@@ -285,7 +359,7 @@
 <header class="hero" id="top">
   <canvas id="sky" aria-hidden="true"></canvas>
   <div class="hero-inner">
-    <p class="hero-eyebrow">Flight Dynamics · LEO Constellations · Mission Analysis</p>
+    <p class="hero-eyebrow" id="boot">Flight Dynamics · LEO Constellations · Mission Analysis</p>
     <h1>Jacob C. Williams</h1>
     <p class="role"><b>Flight Dynamics Engineer</b> — GNC &amp; Orbital Systems</p>
     <p class="pitch">I build the flight dynamics software, maneuver strategies, and mission analyses that keep LEO constellations flying — high-fidelity orbit propagation, orbit determination, maneuver planning, and coverage studies, plus the hardware side to know what the spacecraft can actually take.</p>
@@ -313,9 +387,17 @@
       </div>
     </div>
   </div>
+  <div class="telem" aria-hidden="true">
+    <div class="telem-inner">
+      <span><b>UTC</b> <span id="utc">----&#8209;--&#8209;-- --:--:--Z</span></span>
+      <span class="sep"><b>Regime</b> LEO</span>
+      <span class="sep"><b>Sys</b> <span class="ok">Nominal</span></span>
+      <span class="sep"><b>Downlink</b> jakecwill@gmail.com</span>
+    </div>
+  </div>
 </header>
 
-<main class="wrap">
+<main class="wrap" id="main">
 
   <section id="experience">
     <div class="sec-head reveal">
@@ -557,19 +639,26 @@
   <span class="sig">◢</span> © 2026 Jacob C. Williams · Built for the vacuum of space, rendered in your browser
 </footer>
 
+<button id="rtb" aria-label="Back to top">▲ Top</button>
+
 <script>
 (function () {
   var root = document.documentElement;
 
-  /* ---------- scroll progress ---------- */
+  /* ---------- scroll progress + back-to-top ---------- */
   var bar = document.getElementById('progress');
+  var rtb = document.getElementById('rtb');
   function onScroll() {
     var h = document.documentElement;
     var max = h.scrollHeight - h.clientHeight;
     bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    rtb.classList.toggle('show', h.scrollTop > 600);
   }
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
+  rtb.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 
   /* ---------- reveal on scroll ---------- */
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -580,7 +669,12 @@
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
     }, { threshold: 0.12 });
-    items.forEach(function (el) { io.observe(el); });
+    items.forEach(function (el) {
+      var sibs = el.parentElement.querySelectorAll(':scope > .reveal');
+      var idx = Array.prototype.indexOf.call(sibs, el);
+      if (idx > 0) el.style.transitionDelay = Math.min(idx * 70, 420) + 'ms';
+      io.observe(el);
+    });
   } else {
     items.forEach(function (el) { el.classList.add('in'); });
   }
@@ -599,10 +693,51 @@
     } else { done(false); }
   });
 
+  /* ---------- live UTC clock ---------- */
+  var utcEl = document.getElementById('utc');
+  function tick() {
+    utcEl.textContent = new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z';
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  /* ---------- scrollspy: highlight nav link for section in view ---------- */
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav-links a[href^="#"]'));
+  var spyPairs = [];
+  navLinks.forEach(function (a) {
+    var s = document.querySelector(a.getAttribute('href'));
+    if (s) spyPairs.push({ a: a, s: s });
+  });
+  if ('IntersectionObserver' in window) {
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        spyPairs.forEach(function (p) {
+          p.a.classList.toggle('active', p.s === e.target);
+        });
+      });
+    }, { rootMargin: '-35% 0px -60% 0px' });
+    spyPairs.forEach(function (p) { spy.observe(p.s); });
+  }
+
+  /* ---------- typed hero eyebrow ---------- */
+  var boot = document.getElementById('boot');
+  if (boot && !reduced) {
+    var bootText = boot.textContent;
+    boot.textContent = '';
+    var bi = 0;
+    (function typeNext() {
+      boot.textContent = bootText.slice(0, ++bi);
+      if (bi < bootText.length) setTimeout(typeNext, 22);
+    })();
+  }
+
   /* ---------- hero canvas: starfield + LEO constellation ---------- */
   var canvas = document.getElementById('sky');
   var ctx = canvas.getContext('2d');
-  var stars = [], W = 0, H = 0, dpr = 1, raf = null;
+  var W = 0, H = 0, dpr = 1, raf = null;
+  var meteors = [], mx = -1, my = -1, parX = 0, parY = 0;
+  window.addEventListener('pointermove', function (e) { mx = e.clientX; my = e.clientY; }, { passive: true });
 
   function cssVar(name) {
     return getComputedStyle(root).getPropertyValue(name).trim();
@@ -614,105 +749,208 @@
     W = rect.width; H = rect.height;
     canvas.width = W * dpr; canvas.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    stars = [];
-    var n = Math.floor((W * H) / 6500);
-    for (var i = 0; i < n; i++) {
-      stars.push({
-        x: Math.random() * W, y: Math.random() * H,
-        r: Math.random() * 1.3 + 0.3,
-        p: Math.random() * Math.PI * 2,
-        s: 0.4 + Math.random() * 1.4
-      });
-    }
   }
 
-  /* Planet sits off the right edge; three orbit shells carry satellites. */
-  var ORBITS = [
-    { rx: 1.55, ry: 0.62, tilt: -0.42, sats: 4, speed: 0.00016, phase: 0.0 },
-    { rx: 1.90, ry: 0.85, tilt: -0.18, sats: 5, speed: 0.00012, phase: 2.1 },
-    { rx: 2.30, ry: 1.15, tilt:  0.08, sats: 6, speed: 0.00009, phase: 4.0 }
+  /* Constellation shells: radius in Earth radii, inclination + RAAN in rad */
+  var SHELLS = [
+    { rad: 1.35, inc: 0.92, raan: 0.6, sats: 5, speed: 0.00030 },
+    { rad: 1.55, inc: 0.92, raan: 2.7, sats: 5, speed: 0.00026 },
+    { rad: 1.80, inc: 0.55, raan: 4.5, sats: 4, speed: 0.00022 }
   ];
 
   function draw(t) {
     ctx.clearRect(0, 0, W, H);
-    var starC = cssVar('--canvas-star');
     var orbitC = cssVar('--canvas-orbit');
     var satC = cssVar('--canvas-sat');
-    var pa = cssVar('--canvas-planet-a');
-    var pb = cssVar('--canvas-planet-b');
 
-    /* stars */
-    for (var i = 0; i < stars.length; i++) {
-      var st = stars[i];
-      var tw = reduced ? 0.75 : 0.55 + 0.45 * Math.sin(t * 0.001 * st.s + st.p);
-      ctx.globalAlpha = tw;
-      ctx.fillStyle = starC;
-      ctx.beginPath();
-      ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
-      ctx.fill();
+    /* occasional meteor streak */
+    if (!reduced && meteors.length < 2 && Math.random() < 0.005) {
+      var ma = Math.PI * (0.62 + Math.random() * 0.26);
+      meteors.push({
+        x: W * (0.1 + Math.random() * 0.85), y: -12,
+        vx: Math.cos(ma) * 7, vy: Math.sin(ma) * 7, life: 1
+      });
     }
-    ctx.globalAlpha = 1;
+    for (var m = meteors.length - 1; m >= 0; m--) {
+      var mt = meteors[m];
+      mt.x += mt.vx; mt.y += mt.vy; mt.life -= 0.012;
+      if (mt.life <= 0 || mt.y > H + 24) { meteors.splice(m, 1); continue; }
+      var mg = ctx.createLinearGradient(mt.x, mt.y, mt.x - mt.vx * 14, mt.y - mt.vy * 14);
+      mg.addColorStop(0, 'rgba(242, 237, 236, ' + (0.8 * mt.life).toFixed(3) + ')');
+      mg.addColorStop(1, 'rgba(242, 237, 236, 0)');
+      ctx.strokeStyle = mg;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(mt.x, mt.y);
+      ctx.lineTo(mt.x - mt.vx * 14, mt.y - mt.vy * 14);
+      ctx.stroke();
+    }
 
-    /* planet: circle centered beyond right edge so only the limb shows */
-    var pr = Math.max(H * 0.85, 340);
-    var px = W + pr * 0.55;
-    var py = H * 0.45;
-    var grad = ctx.createRadialGradient(px - pr * 0.5, py - pr * 0.4, pr * 0.2, px, py, pr);
-    grad.addColorStop(0, pa);
-    grad.addColorStop(1, pb);
-    ctx.fillStyle = grad;
+    /* --- rotating wireframe Earth + 3-D constellation shells --- */
+    var mobile = W < 760;
+    var cx = mobile ? W * 0.82 : W * 0.74;
+    var cy = mobile ? H * 0.30 : H * 0.46;
+    var R = mobile ? Math.min(W * 0.30, 150) : Math.min(W * 0.20, H * 0.38, 260);
+    var spin = (reduced ? 9000 : t) * 0.00010;
+    var cT = Math.cos(0.40), sT = Math.sin(0.40);
+
+    function proj(x, y, z) {
+      var y2 = y * cT - z * sT;
+      var z2 = y * sT + z * cT;
+      return { x: cx + x * R, y: cy - y2 * R, z: z2 };
+    }
+    function visible(q) {
+      if (q.z >= 0) return true;
+      var dx = q.x - cx, dy = q.y - cy;
+      return dx * dx + dy * dy > R * R;
+    }
+    function strokeRing(ptFn, radius, alpha, color) {
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      var pen = false;
+      for (var k = 0; k <= 90; k++) {
+        var u = (k / 90) * Math.PI * 2;
+        var p = ptFn(u);
+        var q = proj(p.x * radius, p.y * radius, p.z * radius);
+        if (visible(q)) {
+          if (pen) ctx.lineTo(q.x, q.y); else { ctx.moveTo(q.x, q.y); pen = true; }
+        } else pen = false;
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    /* soft glow behind the globe */
+    var glow = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 2.1);
+    glow.addColorStop(0, 'rgba(255, 107, 84, 0.10)');
+    glow.addColorStop(1, 'rgba(255, 107, 84, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(cx - R * 2.1, cy - R * 2.1, R * 4.2, R * 4.2);
+
+    /* graticule: latitude rings + meridians, front hemisphere only */
+    for (var la = -60; la <= 60; la += 30) {
+      (function (lat, emph) {
+        strokeRing(function (u) {
+          return { x: Math.cos(lat) * Math.cos(u + spin), y: Math.sin(lat), z: Math.cos(lat) * Math.sin(u + spin) };
+        }, 1, emph ? 0.5 : 0.26, orbitC);
+      })(la * Math.PI / 180, la === 0);
+    }
+    for (var lo = 0; lo < 180; lo += 30) {
+      (function (L) {
+        strokeRing(function (u) {
+          return { x: Math.cos(u) * Math.cos(L), y: Math.sin(u), z: Math.cos(u) * Math.sin(L) };
+        }, 1, 0.26, orbitC);
+      })(lo * Math.PI / 180 + spin);
+    }
+    ctx.strokeStyle = orbitC;
+    ctx.globalAlpha = 0.65;
     ctx.beginPath();
-    ctx.arc(px, py, pr, 0, Math.PI * 2);
-    ctx.fill();
-    /* limb glow */
-    ctx.strokeStyle = satC;
-    ctx.globalAlpha = 0.35;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(px, py, pr + 1, 0, Math.PI * 2);
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    /* orbits + satellites */
-    for (var o = 0; o < ORBITS.length; o++) {
-      var ob = ORBITS[o];
-      var rx = pr * ob.rx * 0.72, ry = pr * ob.ry * 0.72;
-      ctx.save();
-      ctx.translate(px, py);
-      ctx.rotate(ob.tilt);
-      ctx.strokeStyle = orbitC;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      for (var s = 0; s < ob.sats; s++) {
-        var ang = ob.phase + (s / ob.sats) * Math.PI * 2 + (reduced ? 0 : t * ob.speed * Math.PI * 2);
-        var sx = Math.cos(ang) * rx, sy = Math.sin(ang) * ry;
-        /* short trailing arc */
+    /* constellation shells with satellites and trails */
+    for (var o = 0; o < SHELLS.length; o++) {
+      var sh = SHELLS[o];
+      var orbitPt = (function (sh) {
+        return function (u) {
+          var xi = Math.cos(u), yi = Math.sin(u) * Math.cos(sh.inc), zi = Math.sin(u) * Math.sin(sh.inc);
+          return {
+            x: xi * Math.cos(sh.raan) + zi * Math.sin(sh.raan),
+            y: yi,
+            z: -xi * Math.sin(sh.raan) + zi * Math.cos(sh.raan)
+          };
+        };
+      })(sh);
+      strokeRing(orbitPt, sh.rad, 0.28, satC);
+      for (var s = 0; s < sh.sats; s++) {
+        var u0 = (reduced ? 2.2 : t * sh.speed) + s * (Math.PI * 2 / sh.sats);
+        var p0 = orbitPt(u0);
+        var q0 = proj(p0.x * sh.rad, p0.y * sh.rad, p0.z * sh.rad);
+        if (!visible(q0)) continue;
         ctx.strokeStyle = satC;
         ctx.globalAlpha = 0.4;
-        ctx.lineWidth = 1.4;
+        ctx.lineWidth = 1.3;
         ctx.beginPath();
-        ctx.ellipse(0, 0, rx, ry, 0, ang - 0.22, ang);
+        var pen2 = false;
+        for (var k2 = 14; k2 >= 0; k2--) {
+          var pk = orbitPt(u0 - k2 * 0.035);
+          var qk = proj(pk.x * sh.rad, pk.y * sh.rad, pk.z * sh.rad);
+          if (visible(qk)) {
+            if (pen2) ctx.lineTo(qk.x, qk.y); else { ctx.moveTo(qk.x, qk.y); pen2 = true; }
+          } else pen2 = false;
+        }
         ctx.stroke();
         ctx.globalAlpha = 1;
-        /* satellite */
         ctx.fillStyle = satC;
         ctx.beginPath();
-        ctx.arc(sx, sy, 2.4, 0, Math.PI * 2);
+        ctx.arc(q0.x, q0.y, 2.3, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 0.22;
+        ctx.beginPath();
+        ctx.arc(q0.x, q0.y, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
       }
-      ctx.restore();
     }
   }
 
-  function loop(t) { draw(t); raf = requestAnimationFrame(loop); }
+  /* ---------- page-wide starfield (fixed canvas behind everything) ---------- */
+  var deep = document.getElementById('space');
+  var dctx = deep.getContext('2d');
+  var dstars = [], dW = 0, dH = 0;
+  function dresize() {
+    var d2 = Math.min(window.devicePixelRatio || 1, 2);
+    dW = window.innerWidth; dH = window.innerHeight;
+    deep.width = dW * d2; deep.height = dH * d2;
+    dctx.setTransform(d2, 0, 0, d2, 0, 0);
+    dstars = [];
+    var n = Math.floor((dW * dH) / 7000);
+    for (var i = 0; i < n; i++) {
+      dstars.push({
+        x: Math.random() * dW, y: Math.random() * dH,
+        r: Math.random() * 1.2 + 0.25,
+        p: Math.random() * Math.PI * 2,
+        s: 0.3 + Math.random() * 1.3,
+        d: 0.25 + Math.random() * 0.75
+      });
+    }
+  }
+  function ddraw(t) {
+    dctx.clearRect(0, 0, dW, dH);
+    var c = cssVar('--canvas-star');
+    var sy = window.scrollY || 0;
+    if (!reduced) {
+      var tX = mx >= 0 ? (mx / Math.max(dW, 1) - 0.5) : 0;
+      var tY = my >= 0 ? (my / Math.max(dH, 1) - 0.5) : 0;
+      parX += (tX - parX) * 0.04;
+      parY += (tY - parY) * 0.04;
+    }
+    for (var i = 0; i < dstars.length; i++) {
+      var st = dstars[i];
+      var y = (st.y - sy * st.d * 0.18) % dH;
+      if (y < 0) y += dH;
+      var tw = reduced ? 0.6 : 0.45 + 0.45 * Math.sin(t * 0.0009 * st.s + st.p);
+      dctx.globalAlpha = tw * (0.35 + 0.65 * st.d);
+      dctx.fillStyle = c;
+      dctx.beginPath();
+      dctx.arc(st.x - parX * st.d * 26, y - parY * st.d * 18, st.r, 0, Math.PI * 2);
+      dctx.fill();
+    }
+    dctx.globalAlpha = 1;
+  }
 
-  resize();
-  window.addEventListener('resize', function () { resize(); if (reduced) draw(9000); });
+  function loop(t) { draw(t); ddraw(t); raf = requestAnimationFrame(loop); }
+
+  resize(); dresize();
+  window.addEventListener('resize', function () {
+    resize(); dresize();
+    if (reduced) { draw(9000); ddraw(9000); }
+  });
   if (reduced) {
-    draw(9000);
+    draw(9000); ddraw(9000);
   } else {
     raf = requestAnimationFrame(loop);
     /* pause when tab hidden */
